@@ -32,10 +32,7 @@ class Board(object):
 
 	def get_cell(self, x, y):
 		"""Return contents of the indicated cell"""
-		try:
-			return self.cells[x + y * 3]
-		except IndexError:
-			raise IndexError, "Out of range: %s %s" % (x, y)
+		return self.cells[x + y * 3]
 
 	def winner(self):
 		"""
