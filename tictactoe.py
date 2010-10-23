@@ -7,15 +7,15 @@ import random
 
 class Board(object):
 	"""A Tic-Tac-Toe board."""
+	piece_chars = { None: ".", 'X': "X", 'O': "O" }
 
 	def __init__(self):
 		self.cells = [None] * 9
 
 	def __str__(self):
-		map = { None: ".", 'X': "X", 'O': "O" }
-		row1 = " | ".join(map[c] for c in self.cells[0:3])
-		row2 = " | ".join(map[c] for c in self.cells[3:6])
-		row3 = " | ".join(map[c] for c in self.cells[6:9])
+		row1 = " | ".join(self.piece_chars[c] for c in self.cells[0:3])
+		row2 = " | ".join(self.piece_chars[c] for c in self.cells[3:6])
+		row3 = " | ".join(self.piece_chars[c] for c in self.cells[6:9])
 		board = " %s \n-----------\n %s \n-----------\n %s " % (row1, row2, row3)
 		return board
 
@@ -38,7 +38,23 @@ class Board(object):
 		"""
 		Determine the winner if any. Return "X", "O", or None.
 		"""
-		pass
+		# Winning board states represented as bitmasks
+		winner = None
+		winning_bitstrings = [
+			"111000000", "000111000", "000000111", 
+			"100100100", "010010010", "001001001", 
+			"100010001", "001010100"]
+		pieces = "XO"
+		for piece in pieces:
+			other_piece = pieces[1 - pieces.find(piece)]
+			bitmask_map = { None: "0", piece: "1", other_piece: "0"}
+			board_bitstring = "".join(bitmask_map[c] for c in self.cells)
+			board_bitvalue = int(board_bitstring, 2)
+			for winning_bitstring in winning_bitstrings:
+				winning_bitmask = int(winning_bitstring, 2)
+				if (board_bitvalue & winning_bitmask) == winning_bitmask:
+					winner = piece
+		return winner
 
 	def finished(self):
 		"""
@@ -51,7 +67,7 @@ class Board(object):
 		Make next move.
 		"""
 		# stubbed -- random
-		x, y = 1, 1
+		x, y = random.randint(0, 2), random.randint(0, 2)
 		while self.get_cell(x, y) is not None:
 			x, y = random.randint(0, 2), random.randint(0, 2)
 		self.set_cell(x, y, "O")
