@@ -41,8 +41,13 @@ class Board(object):
 		"""
 		Determine the winner if any. Return "X", "O", or None.
 		"""
-		# stubbed -- detects full board
-		return all(self.cells)
+		pass
+
+	def finished(self):
+		"""
+		Is board full, or is there a winner?
+		"""
+		return self.winner() or all(self.cells)
 
 	def let_computer_move(self):
 		"""
@@ -71,17 +76,30 @@ class Board(object):
 			except IndexError:
 				print "No such square."
 
-	def play(self):
-		"""Play a game."""
-		while not self.winner():
-			print self
+	def play_turn(self):
+		"""
+		Play a turn of the game.
+		"""
+		if not self.finished():
 			self.let_human_move()
+		if not self.finished():
 			self.let_computer_move()
 
+
 def play():
-	"""Play the game, interactively."""
+	"""
+	Play the game, interactively.
+	"""
 	board = Board()
-	board.play()
+	while not board.finished():
+		print board
+		board.play_turn()
+	print "\nGAME OVER"
+	print board
+	if board.winner():
+		print "Winner: %s" % board.winner()
+	else:
+		print "No winner!"
 
 
 if __name__ == "__main__":
