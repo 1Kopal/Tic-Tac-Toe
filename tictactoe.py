@@ -3,7 +3,9 @@ Interactive Tic-Tac-Toe
 Paul Bissex, October 2010
 More info: http://github.com/cmheisel/Tic-Tac-Toe
 """
+import copy
 import random
+
 
 class Board(object):
 	"""A Tic-Tac-Toe board."""
@@ -62,15 +64,39 @@ class Board(object):
 		"""
 		return self.winner() or all(self.cells)
 
+	def winning_move(self, piece):
+		"""
+		Return a winning move for the given piece if possible, or Return None, None
+		"""
+		possible = self.possible_moves()
+		lookahead = copy.deepcopy(self)
+		for x, y in possible:
+			lookahead.set_cell(x, y, piece)
+			if lookahead.winner() == piece:
+				return x, y
+		
+	def possible_moves(self):
+		"""
+		A list of possible current moves, in (x, y) form
+		"""
+		open = []
+		for x in range(3):
+			for y in range(3):
+				if self.get_cell(x, y) is None:
+					open.append((x, y))
+		return open
+
 	def let_computer_move(self):
 		"""
 		Make next move.
 		"""
 		# stubbed -- random
-		x, y = random.randint(0, 2), random.randint(0, 2)
-		while self.get_cell(x, y) is not None:
-			x, y = random.randint(0, 2), random.randint(0, 2)
-		self.set_cell(x, y, "O")
+		if self.winning_move("O"):
+			x, y = self.winning_move("O")
+			self.set_cell(x, y, "O")
+		else:
+			x, y = random.choice(self.possible_moves())
+			self.set_cell(x, y, "O")
 
 	def let_human_move(self):
 		"""Ask human where it wants to move, and make the change."""
@@ -107,12 +133,12 @@ def play():
 	while not board.finished():
 		print board
 		board.play_turn()
-	print "\nGAME OVER"
+	print "\nGAME OVER\n"
 	print board
 	if board.winner():
-		print "Winner: %s" % board.winner()
+		print "\nWinner: %s" % board.winner()
 	else:
-		print "No winner!"
+		print "\nNo winner!"
 
 
 if __name__ == "__main__":
