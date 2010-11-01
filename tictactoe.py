@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Interactive Tic-Tac-Toe
 Paul Bissex, October 2010
@@ -6,12 +7,8 @@ More info: http://github.com/cmheisel/Tic-Tac-Toe
 import copy
 import random
 
-def debug(text):
-	print "XXX: %s" % text
-
 class Board(object):
 	"""A Tic-Tac-Toe board."""
-	piece_chars = { None: ".", 'X': "X", 'O': "O" }
 
 	def __init__(self):
 		self.cells = [None] * 9
@@ -19,9 +16,10 @@ class Board(object):
 		self.cpiece = "O"
 
 	def __str__(self):
-		row1 = " | ".join(self.piece_chars[c] for c in self.cells[0:3])
-		row2 = " | ".join(self.piece_chars[c] for c in self.cells[3:6])
-		row3 = " | ".join(self.piece_chars[c] for c in self.cells[6:9])
+		piece_chars = { None: ".", 'X': "X", 'O': "O" }
+		row1 = " | ".join(piece_chars[c] for c in self.cells[0:3])
+		row2 = " | ".join(piece_chars[c] for c in self.cells[3:6])
+		row3 = " | ".join(piece_chars[c] for c in self.cells[6:9])
 		board = " %s \n-----------\n %s \n-----------\n %s " % (row1, row2, row3)
 		return board
 
@@ -129,21 +127,17 @@ class Board(object):
 	def computer_move(self):
 		# Win...
 		if self.winning_move(self.cpiece):
-			debug("found a winning computer move")
 			x, y = self.winning_move(self.cpiece)
 			self.set_cell(x, y, self.cpiece)
 		# ...or block a win...
 		elif self.winning_move(self.hpiece):
-			debug("found a winning human move")
 			x, y = self.winning_move(self.hpiece)
 			self.set_cell(x, y, self.cpiece)
 		# ...or take the center...
 		elif self.cell_empty(1, 1):
-			debug("found empty center")
 			self.set_cell(1, 1, self.cpiece)
 		# ...or just move anywhere.
 		else:
-			debug("random move")
 			x, y = random.choice(self.possible_moves())
 			self.set_cell(x, y, self.cpiece)
 
@@ -157,11 +151,10 @@ class Board(object):
 			self.o_move()
 
 
-def play():
+def play(board):
 	"""
 	Play the game, interactively.
 	"""
-	board = Board()
 	while not board.finished():
 		board.play_turn()
 	print "\nGAME OVER\n"
@@ -173,4 +166,5 @@ def play():
 
 
 if __name__ == "__main__":
-	play()
+	board = Board()
+	play(board)
