@@ -6,6 +6,8 @@ More info: http://github.com/cmheisel/Tic-Tac-Toe
 import copy
 import random
 
+def debug(text):
+	print "XXX: %s" % text
 
 class Board(object):
 	"""A Tic-Tac-Toe board."""
@@ -35,6 +37,10 @@ class Board(object):
 	def get_cell(self, x, y):
 		"""Return contents of the indicated cell"""
 		return self.cells[x + y * 3]
+
+	def cell_empty(self, x, y):
+		"""Is the cell empty?"""
+		return self.get_cell(x, y) == None
 
 	def winner(self):
 		"""
@@ -69,8 +75,8 @@ class Board(object):
 		Return a winning move for the given piece if possible, or Return None, None
 		"""
 		possible = self.possible_moves()
-		lookahead = copy.deepcopy(self)
 		for x, y in possible:
+			lookahead = copy.deepcopy(self)
 			lookahead.set_cell(x, y, piece)
 			if lookahead.winner() == piece:
 				return x, y
@@ -82,7 +88,7 @@ class Board(object):
 		open = []
 		for x in range(3):
 			for y in range(3):
-				if self.get_cell(x, y) is None:
+				if self.cell_empty(x, y):
 					open.append((x, y))
 		return open
 
@@ -90,11 +96,23 @@ class Board(object):
 		"""
 		Make next move.
 		"""
-		# stubbed -- random
+		# Win...
 		if self.winning_move("O"):
+			debug("found a winning O move")
 			x, y = self.winning_move("O")
 			self.set_cell(x, y, "O")
+		# ...or block a win...
+		elif self.winning_move("X"):
+			debug("found a winning X move")
+			x, y = self.winning_move("X")
+			self.set_cell(x, y, "O")
+		# ...or take the center...
+		elif self.cell_empty(1, 1):
+			debug("found empty center")
+			self.set_cell(1, 1, "O")
+		# ...or just move anywhere.
 		else:
+			debug("random move")
 			x, y = random.choice(self.possible_moves())
 			self.set_cell(x, y, "O")
 
