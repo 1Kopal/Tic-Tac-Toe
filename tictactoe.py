@@ -15,6 +15,8 @@ class Board(object):
 
 	def __init__(self):
 		self.cells = [None] * 9
+		self.hpiece = "X"
+		self.cpiece = "O"
 
 	def __str__(self):
 		row1 = " | ".join(self.piece_chars[c] for c in self.cells[0:3])
@@ -92,32 +94,23 @@ class Board(object):
 					open.append((x, y))
 		return open
 
-	def let_computer_move(self):
-		"""
-		Make next move.
-		"""
-		# Win...
-		if self.winning_move("O"):
-			debug("found a winning O move")
-			x, y = self.winning_move("O")
-			self.set_cell(x, y, "O")
-		# ...or block a win...
-		elif self.winning_move("X"):
-			debug("found a winning X move")
-			x, y = self.winning_move("X")
-			self.set_cell(x, y, "O")
-		# ...or take the center...
-		elif self.cell_empty(1, 1):
-			debug("found empty center")
-			self.set_cell(1, 1, "O")
-		# ...or just move anywhere.
+	def x_move(self):
+		if self.hpiece == "X":
+			self.human_move()
 		else:
-			debug("random move")
-			x, y = random.choice(self.possible_moves())
-			self.set_cell(x, y, "O")
+			self.computer_move()
 
-	def let_human_move(self):
-		"""Ask human where it wants to move, and make the change."""
+	def o_move(self):
+		if self.hpiece == "O":
+			self.human_move()
+		else:
+			self.computer_move()
+			
+	def human_move(self):
+		"""
+		Ask the human for a move, and make it.
+		"""
+		print self
 		legal_move = False
 		while not legal_move:
 			try:
@@ -126,21 +119,42 @@ class Board(object):
 				x = move % 3
 				if self.get_cell(x, y):
 					raise ValueError
-				self.set_cell(x, y, "X")
+				self.set_cell(x, y, self.hpiece)
 				legal_move = True
 			except ValueError:
 				print "Already a piece there."
 			except IndexError:
 				print "No such square."
 
+	def computer_move(self):
+		# Win...
+		if self.winning_move(self.cpiece):
+			debug("found a winning computer move")
+			x, y = self.winning_move(self.cpiece)
+			self.set_cell(x, y, self.cpiece)
+		# ...or block a win...
+		elif self.winning_move(self.hpiece):
+			debug("found a winning human move")
+			x, y = self.winning_move(self.hpiece)
+			self.set_cell(x, y, self.cpiece)
+		# ...or take the center...
+		elif self.cell_empty(1, 1):
+			debug("found empty center")
+			self.set_cell(1, 1, self.cpiece)
+		# ...or just move anywhere.
+		else:
+			debug("random move")
+			x, y = random.choice(self.possible_moves())
+			self.set_cell(x, y, self.cpiece)
+
 	def play_turn(self):
 		"""
 		Play a turn of the game.
 		"""
 		if not self.finished():
-			self.let_human_move()
+			self.x_move()
 		if not self.finished():
-			self.let_computer_move()
+			self.o_move()
 
 
 def play():
@@ -149,7 +163,6 @@ def play():
 	"""
 	board = Board()
 	while not board.finished():
-		print board
 		board.play_turn()
 	print "\nGAME OVER\n"
 	print board
