@@ -31,6 +31,7 @@ class Board(object):
 	def clear(self):
 		"""Set the board to a blank state."""
 		self.cells = [None] * 9
+		self.moves = []  # instant replay for --test
 
 	def set_cell(self, x, y, piece):
 		"""
@@ -38,6 +39,8 @@ class Board(object):
 		Piece should be an "X" or "O" character or None. 
 		"""
 		self.cells[x + y * 3] = piece
+		if piece is not None:  # record move for --test
+			self.moves.append((piece, 1+x+y*3))
 
 	def get_cell(self, x, y):
 		"""Return contents of the indicated cell"""
@@ -49,9 +52,6 @@ class Board(object):
 
 	def winner(self):
 		"""Determine the winner if any. Return "X", "O", or None."""
-		# If less than 5 moves have been made, there's no winner
-		if self.cells.count(None) >= 5:
-			return None
 		# Winning board states represented as bitmasks
 		winning_bitstrings = [
 			"111000000", "000111000", "000000111", 
@@ -85,20 +85,17 @@ class Board(object):
 				moves.append((x, y))
 			# Undo the tested move
 			self.set_cell(x, y, None)
-			
+			self.moves = self.moves[:-1]  # clean up list for --test
 		return moves
-
-	def fork_move(self, piece):
-		"""
-		Return a move which would create a "fork", i.e. two possible winning moves
-		for the given piece.
-		"""
-		for x, y in self.possible_moves():
-			self.set_cell(x, y, piece)
-			if len(self.winning_moves(piece)) >= 2:
-				return x, y
-			# Undo the tested move
-			self.set_cell(x, y, None)
+		
+	def empty_corners(self):
+		"""Which corner squares are empty?"""
+		corners = [(0, 0), (2, 0), (0, 2), (2, 2)]
+		empty = []
+		for x, y in corners:
+			if self.cell_empty(x, y):
+				empty.append((x, y))
+		return empty
 		
 	def possible_moves(self):
 		"""
@@ -152,17 +149,13 @@ class Board(object):
 		elif self.winning_moves(self.hpiece):
 			x, y = random.choice(self.winning_moves(self.hpiece))
 			self.set_cell(x, y, self.cpiece)
-		# ...or create a fork...
-		elif self.fork_move(self.cpiece):
-			x, y = self.fork_move(self.cpiece)
-			self.set_cell(x, y, self.cpiece)
-		# ...or block a human fork...
-		elif self.fork_move(self.hpiece):
-			x, y = self.fork_move(self.hpiece)
-			self.set_cell(x, y, self.cpiece)
 		# ...or take the center...
 		elif self.cell_empty(1, 1):
 			self.set_cell(1, 1, self.cpiece)
+		# ...or take a corner...
+		elif self.empty_corners():
+			x, y = random.choice(self.empty_corners())
+			self.set_cell(x, y, self.cpiece)
 		# ...or move at random.
 		else:
 			x, y = random.choice(self.possible_moves())
@@ -195,6 +188,7 @@ def test(board, rounds):
 	"""
 	Test the computer player by brute force. "Human" moves randomly.
 	"""
+	wins = { None: 0, "X": 0, "O": 0 }
 	for i in range(rounds):
  		board.clear()
 		while not board.finished():
@@ -207,6 +201,9 @@ def test(board, rounds):
 		if board.winner() == board.hpiece:
 			print "Unauthorized human victory!"
 			print board
+			print board.moves
+		wins[board.winner()] += 1
+	print "WINS:", wins
 
 if __name__ == "__main__":
 	parser = optparse.OptionParser()
