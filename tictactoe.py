@@ -5,15 +5,16 @@ Paul Bissex, October 2010
 More info: http://github.com/cmheisel/Tic-Tac-Toe
 """
 import copy
+import optparse
 import random
 
 class Board(object):
 	"""A Tic-Tac-Toe board."""
 
 	def __init__(self):
-		self.cells = [None] * 9
 		self.hpiece = "X"
 		self.cpiece = "O"
+		self.clear()
 
 	def __str__(self):
 		piece_chars = { None: ".", 'X': "X", 'O': "O" }
@@ -26,6 +27,10 @@ class Board(object):
 	def __repr__(self):
 		pieces = [str(c) for c in self.cells]
 		return "".join(pieces)
+
+	def clear(self):
+		"""Set the board to a blank state."""
+		self.cells = [None] * 9
 
 	def set_cell(self, x, y, piece):
 		"""
@@ -43,11 +48,11 @@ class Board(object):
 		return self.get_cell(x, y) == None
 
 	def winner(self):
-		"""
-		Determine the winner if any. Return "X", "O", or None.
-		"""
+		"""Determine the winner if any. Return "X", "O", or None."""
+		# If less than 5 moves have been made, there's no winner
+		if self.cells.count(None) >= 5:
+			return None
 		# Winning board states represented as bitmasks
-		winner = None
 		winning_bitstrings = [
 			"111000000", "000111000", "000000111", 
 			"100100100", "010010010", "001001001", 
@@ -61,8 +66,7 @@ class Board(object):
 			for winning_bitstring in winning_bitstrings:
 				winning_bitmask = int(winning_bitstring, 2)
 				if (board_bitvalue & winning_bitmask) == winning_bitmask:
-					winner = piece
-		return winner
+					return piece  # We have a winner!
 
 	def finished(self):
 		"""
@@ -70,20 +74,35 @@ class Board(object):
 		"""
 		return self.winner() or all(self.cells)
 
-	def winning_move(self, piece):
+	def winning_moves(self, piece):
 		"""
 		Return a winning move for the given piece if possible, or Return None, None
 		"""
-		possible = self.possible_moves()
-		for x, y in possible:
-			lookahead = copy.deepcopy(self)
-			lookahead.set_cell(x, y, piece)
-			if lookahead.winner() == piece:
+		moves = []
+		for x, y in self.possible_moves():
+			self.set_cell(x, y, piece)
+			if self.winner() == piece:
+				moves.append((x, y))
+			# Undo the tested move
+			self.set_cell(x, y, None)
+			
+		return moves
+
+	def fork_move(self, piece):
+		"""
+		Return a move which would create a "fork", i.e. two possible winning moves
+		for the given piece.
+		"""
+		for x, y in self.possible_moves():
+			self.set_cell(x, y, piece)
+			if len(self.winning_moves(piece)) >= 2:
 				return x, y
+			# Undo the tested move
+			self.set_cell(x, y, None)
 		
 	def possible_moves(self):
 		"""
-		A list of possible current moves, in (x, y) form
+		A list of all possible current moves, in (x, y) form
 		"""
 		open = []
 		for x in range(3):
@@ -126,17 +145,25 @@ class Board(object):
 
 	def computer_move(self):
 		# Win...
-		if self.winning_move(self.cpiece):
-			x, y = self.winning_move(self.cpiece)
+		if self.winning_moves(self.cpiece):
+			x, y = random.choice(self.winning_moves(self.cpiece))
 			self.set_cell(x, y, self.cpiece)
 		# ...or block a win...
-		elif self.winning_move(self.hpiece):
-			x, y = self.winning_move(self.hpiece)
+		elif self.winning_moves(self.hpiece):
+			x, y = random.choice(self.winning_moves(self.hpiece))
+			self.set_cell(x, y, self.cpiece)
+		# ...or create a fork...
+		elif self.fork_move(self.cpiece):
+			x, y = self.fork_move(self.cpiece)
+			self.set_cell(x, y, self.cpiece)
+		# ...or block a human fork...
+		elif self.fork_move(self.hpiece):
+			x, y = self.fork_move(self.hpiece)
 			self.set_cell(x, y, self.cpiece)
 		# ...or take the center...
 		elif self.cell_empty(1, 1):
 			self.set_cell(1, 1, self.cpiece)
-		# ...or just move anywhere.
+		# ...or move at random.
 		else:
 			x, y = random.choice(self.possible_moves())
 			self.set_cell(x, y, self.cpiece)
@@ -164,7 +191,30 @@ def play(board):
 	else:
 		print "\nNo winner!"
 
+def test(board, rounds):
+	"""
+	Test the computer player by brute force. "Human" moves randomly.
+	"""
+	for i in range(rounds):
+ 		board.clear()
+		while not board.finished():
+			# Random "human" move
+			x, y = random.choice(board.possible_moves())
+			board.set_cell(x, y, board.hpiece)
+			# Computer move
+			if not board.finished():
+				board.computer_move()
+		if board.winner() == board.hpiece:
+			print "Unauthorized human victory!"
+			print board
 
 if __name__ == "__main__":
+	parser = optparse.OptionParser()
+	parser.add_option("-t", "--test", help="Rounds of brute-force testing to run")
+	options, args = parser.parse_args()
 	board = Board()
-	play(board)
+	if options.test:
+		test(board, int(options.test))
+	else:
+		play(board)
+		
