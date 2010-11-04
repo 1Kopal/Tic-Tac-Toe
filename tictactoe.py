@@ -134,8 +134,19 @@ class Board(object):
 		
 	def tucked_corner(self, piece):
 		"""Find an open corner "tucked" between two pieces on adjacent sides"""
-		return None
-		
+		top = self.get_cell(*self.side_cells[0]) == piece
+		left = self.get_cell(*self.side_cells[1]) == piece
+		right = self.get_cell(*self.side_cells[2]) == piece
+		bottom = self.get_cell(*self.side_cells[3]) == piece
+		if top and left and self.cell_empty(0, 0):
+			return 0, 0
+		if top and right and self.cell_empty(2, 0):
+			return 2, 0
+		if bottom and left and self.cell_empty(0, 2):
+			return 0, 2
+		if bottom and right and self.cell_empty(2, 2):
+			return 2, 2
+			
 	def possible_moves(self):
 		"""
 		A list of all possible current moves, in (x, y) form
@@ -170,7 +181,7 @@ class Board(object):
 		elif self.empty_corners():
 			if self.tucked_corner(self.hpiece):
 				x, y = self.tucked_corner(self.hpiece)
-			if self.empty_corners(opposite=self.hpiece):
+			elif self.empty_corners(opposite=self.hpiece):
 				x, y = random.choice(self.empty_corners(opposite=self.hpiece))
 			else:
 				x, y = random.choice(self.empty_corners())
@@ -232,6 +243,7 @@ def test(board, rounds):
 	"""
 	wins = { None: 0, "X": 0, "O": 0 }
 	for i in range(rounds):
+		print "Game %d" % i
  		board.clear()
 		while not board.finished():
 			# Random "human" move
