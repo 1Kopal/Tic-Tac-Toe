@@ -4,7 +4,6 @@ Interactive Tic-Tac-Toe
 Paul Bissex, October 2010
 More info: http://github.com/cmheisel/Tic-Tac-Toe
 """
-import copy
 import optparse
 import random
 
@@ -14,6 +13,8 @@ class Board(object):
 	def __init__(self):
 		self.hpiece = "X"
 		self.cpiece = "O"
+		self.corner_cells = [(0, 0), (2, 0), (0, 2), (2, 2)]
+		self.side_cells = [(1, 0), (0, 1), (2, 1), (1, 2)]
 		self.clear()
 
 	def __str__(self):
@@ -27,6 +28,9 @@ class Board(object):
 	def __repr__(self):
 		pieces = [str(c) for c in self.cells]
 		return "".join(pieces)
+
+
+	# Board mechanics
 
 	def clear(self):
 		"""Set the board to a blank state."""
@@ -48,7 +52,23 @@ class Board(object):
 
 	def cell_empty(self, x, y):
 		"""Is the cell empty?"""
-		return self.get_cell(x, y) == None
+		return self.get_cell(x, y) is None
+
+	def x_move(self):
+		if self.hpiece == "X":
+			self.human_move()
+		else:
+			self.computer_move()
+
+	def o_move(self):
+		if self.hpiece == "O":
+			self.human_move()
+		else:
+			self.computer_move()
+
+	def finished(self):
+		"""Is the board full, or is there a winner?"""
+		return self.winner() or all(self.cells)
 
 	def winner(self):
 		"""Determine the winner if any. Return "X", "O", or None."""
@@ -68,15 +88,12 @@ class Board(object):
 				if (board_bitvalue & winning_bitmask) == winning_bitmask:
 					return piece  # We have a winner!
 
-	def finished(self):
-		"""
-		Is board full, or is there a winner?
-		"""
-		return self.winner() or all(self.cells)
+
+	# Computer tactics
 
 	def winning_moves(self, piece):
 		"""
-		Return a winning move for the given piece if possible, or Return None, None
+		Return a winning move for the given piece if possible, or return empty list
 		"""
 		moves = []
 		for x, y in self.possible_moves():
@@ -88,14 +105,36 @@ class Board(object):
 			self.moves = self.moves[:-1]  # clean up list for --test
 		return moves
 		
-	def empty_corners(self):
-		"""Which corner squares are empty?"""
-		corners = [(0, 0), (2, 0), (0, 2), (2, 2)]
-		empty = []
-		for x, y in corners:
-			if self.cell_empty(x, y):
-				empty.append((x, y))
+	def opposite_corner(self, x, y):
+		"""Return the cell coordinates diagonally opposite the given cell."""
+		if (x, y) in self.corner_cells:
+			opp_x = 2 - x
+			opp_y = 2 - y
+		return opp_x, opp_y
+
+	def empty_corners(self, opposite=None):
+		"""
+		Which corner squares are empty? If "opposite" is provided ("X" or "O"), 
+		look for open corner cells opposite that piece.
+		"""
+		empty = [cell for cell in self.corner_cells if self.cell_empty(*cell)]
+		if opposite:
+			empty_opposite = []
+			for x, y in empty:
+				if self.get_cell(*self.opposite_corner(x, y)) == opposite:
+					empty_opposite.append((x, y))
+			return empty_opposite
+		else:
+			return empty
+		
+	def empty_sides(self):
+		"""Which side squares are empty?"""
+		empty = [cell for cell in self.side_cells if self.cell_empty(*cell)]
 		return empty
+		
+	def tucked_corner(self, piece):
+		"""Find an open corner "tucked" between two pieces on adjacent sides"""
+		return None
 		
 	def possible_moves(self):
 		"""
@@ -108,18 +147,42 @@ class Board(object):
 					open.append((x, y))
 		return open
 
-	def x_move(self):
-		if self.hpiece == "X":
-			self.human_move()
+	def computer_move(self):
+		# Win...
+		if self.winning_moves(self.cpiece):
+			x, y = random.choice(self.winning_moves(self.cpiece))
+			self.set_cell(x, y, self.cpiece)
+		# ...or block a win...
+		elif self.winning_moves(self.hpiece):
+			x, y = random.choice(self.winning_moves(self.hpiece))
+			self.set_cell(x, y, self.cpiece)
+		# ...or take the center...
+		elif self.cell_empty(1, 1):
+			self.set_cell(1, 1, self.cpiece)
+		# ...or foil a possible fork...
+		elif len([c for c in self.corner_cells if self.get_cell(*c) == self.hpiece]) > 1:
+			x, y = random.choice(self.empty_sides())
+			self.set_cell(x, y, self.cpiece)
+		# ...or take a corner: 
+		# 1. between two human pieces on sides ("tucked") or
+		# 2. opposite human piece in corner or
+		# 3. randomly
+		elif self.empty_corners():
+			if self.tucked_corner(self.hpiece):
+				x, y = self.tucked_corner(self.hpiece)
+			if self.empty_corners(opposite=self.hpiece):
+				x, y = random.choice(self.empty_corners(opposite=self.hpiece))
+			else:
+				x, y = random.choice(self.empty_corners())
+			self.set_cell(x, y, self.cpiece)
+		# ...or move at random.
 		else:
-			self.computer_move()
+			x, y = random.choice(self.possible_moves())
+			self.set_cell(x, y, self.cpiece)
 
-	def o_move(self):
-		if self.hpiece == "O":
-			self.human_move()
-		else:
-			self.computer_move()
-			
+
+	# Game play
+	
 	def human_move(self):
 		"""
 		Ask the human for a move, and make it.
@@ -139,27 +202,6 @@ class Board(object):
 				print "Already a piece there."
 			except IndexError:
 				print "No such square."
-
-	def computer_move(self):
-		# Win...
-		if self.winning_moves(self.cpiece):
-			x, y = random.choice(self.winning_moves(self.cpiece))
-			self.set_cell(x, y, self.cpiece)
-		# ...or block a win...
-		elif self.winning_moves(self.hpiece):
-			x, y = random.choice(self.winning_moves(self.hpiece))
-			self.set_cell(x, y, self.cpiece)
-		# ...or take the center...
-		elif self.cell_empty(1, 1):
-			self.set_cell(1, 1, self.cpiece)
-		# ...or take a corner...
-		elif self.empty_corners():
-			x, y = random.choice(self.empty_corners())
-			self.set_cell(x, y, self.cpiece)
-		# ...or move at random.
-		else:
-			x, y = random.choice(self.possible_moves())
-			self.set_cell(x, y, self.cpiece)
 
 	def play_turn(self):
 		"""
